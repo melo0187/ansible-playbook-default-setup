@@ -1,0 +1,117 @@
+---
+- hosts: all
+
+  tasks:
+  - name: Ensure all packages are updated to their latest version
+    become: yes
+    ansible.builtin.apt:
+      name: "*"
+      state: latest
+      update_cache: yes
+
+  - name: Ensure required software available from apt is installed
+    become: yes
+    ansible.builtin.apt:
+      pkg:
+      - git
+      - curl
+      - jq
+      - xclip
+      - fzf
+      - openjdk-21-jdk
+      - stow
+      - nnn
+      - tmux
+      - zsh
+      - fonts-firacode
+
+  - name: Ensure jump is installed from snap
+    become: yes
+    community.general.snap:
+      name: jump
+
+  - name: Ensure user has zsh set as his shell
+    become: yes
+    ansible.builtin.user:
+      name: "{{ ansible_user_id }}"
+      shell: /bin/zsh
+
+  - name: Ensure oh-my-zsh has been installed
+    ansible.builtin.git:
+      repo: https://github.com/ohmyzsh/ohmyzsh.git
+      dest: /home/{{ ansible_user_id }}/.oh-my-zsh
+      depth: 1
+
+  - name: Ensure zsh-syntax-highlighting plugin is installed
+    ansible.builtin.git:
+      repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+      dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+      depth: 1
+
+  - name: Ensure fzf-tab plugin is installed
+    ansible.builtin.git:
+      repo: https://github.com/Aloxaf/fzf-tab.git
+      dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/fzf-tab
+      depth: 1
+
+  - name: Ensure spaceship theme is cloned
+    ansible.builtin.git:
+      repo: https://github.com/spaceship-prompt/spaceship-prompt.git
+      dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship-prompt
+      depth: 1
+
+  - name: Ensure spaceship theme is symlinked
+    ansible.builtin.file:
+      src: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme
+      dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship.zsh-theme
+      state: link
+
+  - name: Ensure dotfiles are cloned
+    ansible.builtin.git:
+      repo: https://github.com/melo0187/dotfiles.git
+      dest: /home/{{ ansible_user_id }}/dotfiles
+
+  - name: Ensure dotfiles are applied
+    ansible.builtin.shell: stow .
+    args:
+      chdir: /home/{{ ansible_user_id }}/dotfiles
+
+  - name: Enrsure docker is installed
+    become: yes
+    block:
+      - name: docker | no apt key
+        ansible.builtin.get_url:
+          url: https://download.docker.com/linux/ubuntu/gpg
+          dest: /etc/apt/keyrings/docker.asc
+  
+      - name: docker | apt source
+        ansible.builtin.apt_repository:
+          repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+          state: present
+
+      - name: docker | install
+        ansible.builtin.apt:
+          pkg:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+
+      - name: docker | enable and start docker service
+        ansible.builtin.service:
+          name: docker
+          state: started
+          enabled: yes
+
+      - name: docker | enable and start containerd service
+        ansible.builtin.service:
+          name: containerd
+          state: started
+          enabled: yes
+
+      - name: Add the user to docker group
+        ansible.builtin.user:
+          name: "{{ ansible_user_id }}"
+          groups: docker
+          append: yes
