@@ -14,6 +14,10 @@
     ansible.builtin.apt:
       pkg:
       - git
+      - make
+      - gcc # to build dragon
+      - pkgconf # to build dragon
+      - libgtk-3-dev # to build dragon
       - curl
       - jq
       - xclip
@@ -115,3 +119,17 @@
           name: "{{ ansible_user_id }}"
           groups: docker
           append: yes
+
+  - name: Ensure dragon is installed (used with nnn)
+    block:
+      - name: dragon | clone repository
+        ansible.builtin.git:
+          repo: https://github.com/mwh/dragon.git
+          dest: /tmp/dragon
+          depth: 1
+
+      - name: dragon | make install
+        ansible.builtin.command:
+          cmd: make install
+          chdir: /tmp/dragon/
+          creates: /home/{{ ansible_user_id }}/.local/bin/dragon
