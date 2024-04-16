@@ -70,15 +70,17 @@
       dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship.zsh-theme
       state: link
 
-  - name: Ensure dotfiles are cloned
-    ansible.builtin.git:
-      repo: https://github.com/melo0187/dotfiles.git
-      dest: /home/{{ ansible_user_id }}/dotfiles
-
   - name: Ensure dotfiles are applied
-    ansible.builtin.shell: stow .
-    args:
-      chdir: /home/{{ ansible_user_id }}/dotfiles
+    block:
+      - name: dotfiles | clone
+        ansible.builtin.git:
+          repo: https://github.com/melo0187/dotfiles.git
+          dest: /home/{{ ansible_user_id }}/dotfiles
+
+      - name: dotfiles | stow
+        ansible.builtin.shell: stow .
+        args:
+          chdir: /home/{{ ansible_user_id }}/dotfiles
 
   - name: Ensure docker is installed
     become: yes
