@@ -80,7 +80,7 @@
     args:
       chdir: /home/{{ ansible_user_id }}/dotfiles
 
-  - name: Enrsure docker is installed
+  - name: Ensure docker is installed
     become: yes
     block:
       - name: docker | no apt key
