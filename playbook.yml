@@ -135,3 +135,8 @@
           cmd: make install
           chdir: /tmp/dragon/
           creates: /home/{{ ansible_user_id }}/.local/bin/dragon
+
+  - name: Ensure Synology Drive is installed
+    become: yes
+    ansible.builtin.apt:
+      deb: https://global.download.synology.com/download/Utility/SynologyDriveClient/3.2.1-13271/Ubuntu/Installer/x86_64/synology-drive-client-13271.x86_64.deb
