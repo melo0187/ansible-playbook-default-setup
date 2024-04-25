@@ -140,3 +140,10 @@
     become: yes
     ansible.builtin.apt:
       deb: https://global.download.synology.com/download/Utility/SynologyDriveClient/3.2.1-13271/Ubuntu/Installer/x86_64/synology-drive-client-13271.x86_64.deb
+
+  - name: Ensure Obsidian is installed from snap
+    become: yes
+    community.general.snap:
+      name: obsidian
+      classic: true
+
