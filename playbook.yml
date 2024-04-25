@@ -153,3 +153,19 @@
       name: intellij-idea-ultimate
       classic: true
 
+  - name: Ensure Signal is installed
+    become: yes
+    block:
+      - name: Signal | get key
+        ansible.builtin.get_url:
+          url: https://updates.signal.org/desktop/apt/keys.asc
+          dest: /etc/apt/keyrings/signal-desktop.asc
+
+      - name: Signal | apt source
+        ansible.builtin.apt_repository:
+          repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/signal-desktop.asc] https://updates.signal.org/desktop/apt xenial main"
+          state: present
+
+      - name: Signal | install
+        ansible.builtin.apt:
+          name: signal-desktop
