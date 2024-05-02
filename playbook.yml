@@ -13,6 +13,7 @@
     become: yes
     ansible.builtin.apt:
       pkg:
+      - vim
       - git
       - make
       - gcc # to build dragon
