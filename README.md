@@ -9,7 +9,7 @@ $ sudo apt-get update
 $ sudo apt-get install -y ansible
 ```
 ### Run the playbook
-Should just be `ansible-playbook --connection=local --inventory 127.0.0.1, playbook.yml`
+Should just be `ansible-playbook --connection=local --inventory 127.0.0.1, --ask-become-pass playbook.yml`
 
 ## Testing
 To be able to test the playbook I use Vagrant and an Ubuntu box in VirtualBox.
