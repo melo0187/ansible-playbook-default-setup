@@ -154,6 +154,12 @@
       name: intellij-idea-ultimate
       classic: true
 
+  - name: Ensure Slack is installed from snap
+    become: yes
+    community.general.snap:
+      name: slack
+      classic: true
+
   - name: Ensure Signal is installed
     become: yes
     block:
