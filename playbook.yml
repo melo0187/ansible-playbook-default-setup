@@ -138,6 +138,10 @@
           chdir: /tmp/dragon/
           creates: /home/{{ ansible_user_id }}/.local/bin/dragon
 
+  - name: Ensure nnn plugins are installed
+    ansible.builtin.shell:
+      cmd: sh -c "$(curl -Ls https://raw.githubusercontent.com/jarun/nnn/master/plugins/getplugs)"
+
   - name: Ensure Synology Drive is installed
     become: yes
     ansible.builtin.apt:
