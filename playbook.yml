@@ -181,3 +181,8 @@
       - name: Signal | install
         ansible.builtin.apt:
           name: signal-desktop
+
+  - name: Ensure Insomnia is installed from snap
+    become: yes
+    community.general.snap:
+      name: insomnia
