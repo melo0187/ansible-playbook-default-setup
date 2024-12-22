@@ -30,6 +30,8 @@
       - tmux
       - zsh
       - fonts-firacode
+      - img2pdf
+      - ocrmypdf
 
   - name: Ensure jump is installed from snap
     become: yes
