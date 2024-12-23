@@ -1,0 +1,15 @@
+---
+- hosts: all
+
+  tasks:
+  - name: Ensure Slack is installed from snap
+    become: yes
+    community.general.snap:
+      name: slack
+      classic: true
+
+  - name: Ensure IntelliJ IDEA Ultimate is installed from snap
+    become: yes
+    community.general.snap:
+      name: intellij-idea-ultimate
+      classic: true
