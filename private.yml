@@ -1,0 +1,85 @@
+---
+- hosts: all
+
+  tasks:
+  - name: Ensure software for private use available from apt is installed
+    become: yes
+    ansible.builtin.apt:
+      pkg:
+      - hexchat
+      - steam
+
+  - name: Install OpenRazer and Polychromatic from PPAs
+    block:
+      - name: Add OpenRazer PPA
+        apt_repository:
+          repo: ppa:openrazer/stable
+          state: present
+  
+      - name: Add Polychromatic PPA
+        apt_repository:
+          repo: ppa:polychromatic/stable
+          state: present
+  
+      - name: Update APT package index
+        apt:
+          update_cache: yes
+  
+      - name: Install Polychromatic
+        apt:
+          name: polychromatic
+          state: present
+
+  - name: Ensure software for private use available from snap is installed
+    become: yes
+    community.general.snap:
+      name: 
+      - discord
+
+  - name: Ensure IntelliJ IDEA Community is installed from snap
+    become: yes
+    community.general.snap:
+      name: intellij-idea-community
+      classic: true
+
+  - name: Mount DiskStation shares with autofs
+    block:
+      - name: Ensure nfs-common and autofs are installed
+        apt:
+          name:
+            - nfs-common
+            - autofs
+          state: present
+      
+      - name: Ensure auto.master contains the autofs configuration
+        lineinfile:
+          path: /etc/auto.master
+          line: "/- /etc/auto.home"
+          state: present
+      
+      - name: Create necessary mount point directories
+        file:
+          path: "{{ item }}"
+          state: directory
+          owner: "{{ ansible_user }}"
+          group: "{{ ansible_user }}"
+          mode: '0755'
+        loop:
+          - "/home/{{ ansible_user }}/Music/AudioStation"
+          - "/home/{{ ansible_user }}/Videos/VideoStation"
+          - "/home/{{ ansible_user }}/Pictures/PhotoStation"
+          - "/home/{{ ansible_user }}/Downloads/DownloadStation"
+          - "/home/{{ ansible_user }}/Backup"
+      
+      - name: Deploy the auto.home file with dynamic username
+        template:
+          src: auto.home.j2
+          dest: /etc/auto.home
+          owner: root
+          group: root
+          mode: '0644'
+      
+      - name: Reload autofs service
+        service:
+          name: autofs
+          state: reloaded

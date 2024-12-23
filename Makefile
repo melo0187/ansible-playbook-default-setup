@@ -11,3 +11,9 @@ test-from-scratch:
 
 play:
 	ansible-playbook --connection=local --inventory 127.0.0.1, --ask-become-pass playbook.yml
+
+play-work:
+	ansible-playbook --connection=local --inventory 127.0.0.1, --ask-become-pass playbook.yml --extra-vars "device_type=work"
+
+play-private:
+	ansible-playbook --connection=local --inventory 127.0.0.1, --ask-become-pass playbook.yml --extra-vars "device_type=private"
