@@ -10,25 +10,33 @@
       - steam
 
   - name: Install OpenRazer and Polychromatic from PPAs
+    become: yes
     block:
       - name: Add OpenRazer PPA
-        apt_repository:
+        ansible.builtin.apt_repository:
           repo: ppa:openrazer/stable
           state: present
   
       - name: Add Polychromatic PPA
-        apt_repository:
+        ansible.builtin.apt_repository:
           repo: ppa:polychromatic/stable
           state: present
   
       - name: Update APT package index
-        apt:
+        ansible.builtin.apt:
           update_cache: yes
   
       - name: Install Polychromatic
-        apt:
-          name: polychromatic
-          state: present
+        ansible.builtin.apt:
+          pkg:
+          - polychromatic
+          - openrazer-meta
+
+      - name: Add user to the plugdev group
+        ansible.builtin.user:
+          name: "{{ ansible_user_id }}"
+          groups: plugdev
+          append: yes
 
   - name: Ensure software for private use available from snap is installed
     become: yes
@@ -43,9 +51,10 @@
       classic: true
 
   - name: Mount DiskStation shares with autofs
+    become: yes
     block:
       - name: Ensure nfs-common and autofs are installed
-        apt:
+        ansible.builtin.apt:
           name:
             - nfs-common
             - autofs
@@ -61,15 +70,15 @@
         file:
           path: "{{ item }}"
           state: directory
-          owner: "{{ ansible_user }}"
-          group: "{{ ansible_user }}"
+          owner: "{{ ansible_user_id }}"
+          group: "{{ ansible_user_id }}"
           mode: '0755'
         loop:
-          - "/home/{{ ansible_user }}/Music/AudioStation"
-          - "/home/{{ ansible_user }}/Videos/VideoStation"
-          - "/home/{{ ansible_user }}/Pictures/PhotoStation"
-          - "/home/{{ ansible_user }}/Downloads/DownloadStation"
-          - "/home/{{ ansible_user }}/Backup"
+          - "/home/{{ ansible_user_id }}/Music/AudioStation"
+          - "/home/{{ ansible_user_id }}/Videos/VideoStation"
+          - "/home/{{ ansible_user_id }}/Pictures/PhotoStation"
+          - "/home/{{ ansible_user_id }}/Downloads/DownloadStation"
+          - "/home/{{ ansible_user_id }}/Backup"
       
       - name: Deploy the auto.home file with dynamic username
         template:
