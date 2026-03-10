@@ -13,3 +13,61 @@
     community.general.snap:
       name: intellij-idea-ultimate
       classic: true
+
+  - name: Ensure kubectl is installed from snap
+    become: yes
+    community.general.snap:
+      name: kubectl
+      classic: true
+
+  - name: Ensure terraform is installed
+    apt:
+      name: terraform
+      state: present
+      update_cache: yes
+
+  - name: Install Granted from Common Fate APT repository
+    become: yes
+    tasks:
+      - name: Ensure GPG is installed
+        apt:
+          name: gpg
+          state: present
+          update_cache: yes
+  
+      - name: Download and install the Common Fate GPG key
+        get_url:
+          url: https://apt.releases.commonfate.io/gpg
+          dest: /usr/share/keyrings/common-fate-linux.gpg
+          mode: '0644'
+        register: gpg_key
+  
+      - name: Add the Common Fate APT repository
+        copy:
+          dest: /etc/apt/sources.list.d/common-fate.list
+          content: "deb [arch={{ ansible_architecture }} signed-by=/usr/share/keyrings/common-fate-linux.gpg] https://apt.releases.commonfate.io stable main"
+          mode: '0644'
+        register: apt_repo
+  
+      - name: Update APT repositories
+        apt:
+          update_cache: yes
+        when: gpg_key.changed or apt_repo.changed
+  
+      - name: Install Granted
+        apt:
+          name: granted
+          state: present
+
+      - name: Ensure alias assume="source assume" is in ~/.zshrc-work
+        lineinfile:
+          path: ~/.zshrc-work
+          line: 'alias assume="source assume"'
+          create: yes
+
+  - name: Install pnpm
+    shell: curl -fsSL https://get.pnpm.io/install.sh | sh -
+    args:
+      executable: /bin/bash
+    register: pnpm_install
+    changed_when: "'pnpm' in pnpm_install.stdout"
