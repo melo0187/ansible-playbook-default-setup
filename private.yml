@@ -67,6 +67,29 @@
             flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
             method: system
 
+    - name: Ensure ProtonPlus is installed from Flathub
+      community.general.flatpak:
+        name: com.vysp3r.ProtonPlus
+        state: present
+        remote: flathub
+
+    - name: Ensure Linux Game Bench is installed
+      block:
+        - name: Linux Game Bench | Install dependencies
+          ansible.builtin.apt:
+            pkg:
+              - mangohud
+              - vulkan-tools
+            state: present
+            update_cache: true
+          become: true
+
+        - name: Linux Game Bench | Install via pipx
+          community.general.pipx:
+            name: linuxgamebench
+            source: git+https://github.com/taaderbe/linuxgamebench.git
+            state: present
+
     - name: Mount DiskStation shares with autofs
       become: true
       block:
