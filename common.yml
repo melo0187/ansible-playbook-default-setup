@@ -24,7 +24,7 @@
           - jq
           - xclip
           - fzf
-          - rg
+          - ripgrep
           - openjdk-21-jdk
           - stow
           - nnn
