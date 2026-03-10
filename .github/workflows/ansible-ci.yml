@@ -56,3 +56,13 @@ jobs:
           --check
           playbook.yml
           --extra-vars "device_type=${{ matrix.device_type }}"
+
+  dry-run-complete:
+    name: Dry run complete
+    runs-on: ubuntu-latest
+    needs: dry-run
+    if: always()
+    steps:
+      - name: Check matrix result
+        if: needs.dry-run.result != 'success'
+        run: exit 1
