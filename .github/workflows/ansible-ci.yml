@@ -1,0 +1,55 @@
+---
+name: Ansible CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pipx
+        run: sudo apt-get install -y pipx
+
+      - name: Install ansible-lint
+        run: pipx install ansible-lint
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install -r requirements.yml
+
+      - name: Run ansible-lint
+        run: ansible-lint playbook.yml
+
+  dry-run:
+    name: Dry run - ${{ matrix.device_type }}
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        device_type: ["private", "work"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          sudo apt-add-repository -y ppa:ansible/ansible
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install -r requirements.yml
+
+      - name: Dry run playbook
+        run: >
+          ansible-playbook
+          --connection=local
+          --inventory 127.0.0.1,
+          --check
+          playbook.yml
+          --extra-vars "device_type=${{ matrix.device_type }}"
