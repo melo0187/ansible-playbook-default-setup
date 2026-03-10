@@ -1,6 +1,9 @@
 ---
-- import_playbook: common.yml
-- import_playbook: work.yml
+- name: Import common configuration
+  import_playbook: common.yml
+- name: Import work device configuration
+  import_playbook: work.yml
   when: "device_type == 'work'"
-- import_playbook: private.yml
+- name: Import private device configuration
+  import_playbook: private.yml
   when: "device_type == 'private'"

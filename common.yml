@@ -1,179 +1,205 @@
 ---
-- hosts: all
+- name: Apply base system configuration
+  hosts: all
 
   tasks:
-  - name: Ensure all packages are updated to their latest version
-    become: yes
-    ansible.builtin.apt:
-      name: "*"
-      state: latest
-      update_cache: yes
+    - name: Ensure all packages are updated to their latest version
+      become: true
+      ansible.builtin.apt:
+        upgrade: true
+        update_cache: true
 
-  - name: Ensure required software available from apt is installed
-    become: yes
-    ansible.builtin.apt:
-      pkg:
-      - vim
-      - vim-gui-common
-      - git
-      - make
-      - gcc # to build dragon
-      - pkgconf # to build dragon
-      - libgtk-3-dev # to build dragon
-      - curl
-      - jq
-      - xclip
-      - fzf
-      - rg
-      - openjdk-21-jdk
-      - stow
-      - nnn
-      - tmux
-      - zsh
-      - fonts-firacode
-      - img2pdf
-      - ocrmypdf
+    - name: Ensure required software available from apt is installed
+      become: true
+      ansible.builtin.apt:
+        pkg:
+          - vim
+          - vim-gui-common
+          - git
+          - make
+          - gcc # to build dragon
+          - pkgconf # to build dragon
+          - libgtk-3-dev # to build dragon
+          - curl
+          - jq
+          - xclip
+          - fzf
+          - rg
+          - openjdk-21-jdk
+          - stow
+          - nnn
+          - tmux
+          - zsh
+          - fonts-firacode
+          - img2pdf
+          - ocrmypdf
 
-  - name: Ensure jump is installed from snap
-    become: yes
-    community.general.snap:
-      name: jump
+    - name: Ensure jump is installed from snap
+      become: true
+      community.general.snap:
+        name: jump
 
-  - name: Ensure user has zsh set as his shell
-    become: yes
-    ansible.builtin.user:
-      name: "{{ ansible_user_id }}"
-      shell: /bin/zsh
+    - name: Ensure user has zsh set as his shell
+      become: true
+      ansible.builtin.user:
+        name: "{{ ansible_user_id }}"
+        shell: /bin/zsh
 
-  - name: Ensure oh-my-zsh has been installed
-    ansible.builtin.git:
-      repo: https://github.com/ohmyzsh/ohmyzsh.git
-      dest: /home/{{ ansible_user_id }}/.oh-my-zsh
-      depth: 1
+    - name: Ensure oh-my-zsh has been installed
+      ansible.builtin.git:
+        repo: https://github.com/ohmyzsh/ohmyzsh.git
+        dest: /home/{{ ansible_user_id }}/.oh-my-zsh
+        depth: 1
+        version: master
 
-  - name: Ensure zsh-syntax-highlighting plugin is installed
-    ansible.builtin.git:
-      repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
-      dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
-      depth: 1
+    - name: Ensure zsh-syntax-highlighting plugin is installed
+      ansible.builtin.git:
+        repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+        dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+        depth: 1
+        version: master
 
-  - name: Ensure fzf-tab plugin is installed
-    ansible.builtin.git:
-      repo: https://github.com/Aloxaf/fzf-tab.git
-      dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/fzf-tab
-      depth: 1
+    - name: Ensure fzf-tab plugin is installed
+      ansible.builtin.git:
+        repo: https://github.com/Aloxaf/fzf-tab.git
+        dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/fzf-tab
+        depth: 1
+        version: master
 
-  - name: Ensure spaceship theme is cloned
-    ansible.builtin.git:
-      repo: https://github.com/spaceship-prompt/spaceship-prompt.git
-      dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship-prompt
-      depth: 1
+    - name: Ensure spaceship theme is cloned
+      ansible.builtin.git:
+        repo: https://github.com/spaceship-prompt/spaceship-prompt.git
+        dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship-prompt
+        depth: 1
+        version: master
 
-  - name: Ensure spaceship theme is symlinked
-    ansible.builtin.file:
-      src: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme
-      dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship.zsh-theme
-      state: link
+    - name: Ensure spaceship theme is symlinked
+      ansible.builtin.file:
+        src: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme
+        dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship.zsh-theme
+        state: link
 
-  - name: Ensure dotfiles are applied
-    block:
-      - name: dotfiles | clone
-        ansible.builtin.git:
-          repo: https://github.com/melo0187/dotfiles.git
-          dest: /home/{{ ansible_user_id }}/dotfiles
+    - name: Ensure dotfiles are applied
+      block:
+        - name: Dotfiles | Clone
+          ansible.builtin.git:
+            repo: https://github.com/melo0187/dotfiles.git
+            dest: /home/{{ ansible_user_id }}/dotfiles
+            version: master
 
-      - name: dotfiles | stow
-        ansible.builtin.shell: stow .
-        args:
-          chdir: /home/{{ ansible_user_id }}/dotfiles
+        - name: Dotfiles | Stow
+          ansible.builtin.command: stow .
+          args:
+            chdir: /home/{{ ansible_user_id }}/dotfiles
+          changed_when: true
 
-  - name: Ensure docker is installed
-    become: yes
-    block:
-      - name: docker | no apt key
-        ansible.builtin.get_url:
-          url: https://download.docker.com/linux/ubuntu/gpg
-          dest: /etc/apt/keyrings/docker.asc
-  
-      - name: docker | apt source
-        ansible.builtin.apt_repository:
-          repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-          state: present
+    - name: Ensure docker is installed
+      become: true
+      block:
+        - name: Docker | Download GPG key
+          ansible.builtin.get_url:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            dest: /etc/apt/keyrings/docker.asc
+            mode: '0644'
 
-      - name: docker | install
-        ansible.builtin.apt:
-          pkg:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-          - docker-buildx-plugin
-          - docker-compose-plugin
+        - name: Docker | Add apt source
+          ansible.builtin.apt_repository:
+            repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            state: present
 
-      - name: docker | enable and start docker service
-        ansible.builtin.service:
-          name: docker
-          state: started
-          enabled: yes
+        - name: Docker | Install packages
+          ansible.builtin.apt:
+            pkg:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+              - docker-buildx-plugin
+              - docker-compose-plugin
 
-      - name: docker | enable and start containerd service
-        ansible.builtin.service:
-          name: containerd
-          state: started
-          enabled: yes
+        - name: Docker | Enable and start docker service
+          ansible.builtin.service:
+            name: docker
+            state: started
+            enabled: true
 
-      - name: docker | add the user to docker group
-        ansible.builtin.user:
-          name: "{{ ansible_user_id }}"
-          groups: docker
-          append: yes
+        - name: Docker | Enable and start containerd service
+          ansible.builtin.service:
+            name: containerd
+            state: started
+            enabled: true
 
-  - name: Ensure dragon is installed (used with nnn)
-    block:
-      - name: dragon | clone repository
-        ansible.builtin.git:
-          repo: https://github.com/mwh/dragon.git
-          dest: /tmp/dragon
-          depth: 1
+        - name: Docker | Add the user to docker group
+          ansible.builtin.user:
+            name: "{{ ansible_user_id }}"
+            groups: docker
+            append: true
 
-      - name: dragon | make install
-        ansible.builtin.command:
-          cmd: make install
-          chdir: /tmp/dragon/
-          creates: /home/{{ ansible_user_id }}/.local/bin/dragon
+    - name: Ensure dragon is installed (used with nnn)
+      block:
+        - name: Dragon | Clone repository
+          ansible.builtin.git:
+            repo: https://github.com/mwh/dragon.git
+            dest: /tmp/dragon
+            depth: 1
+            version: master
 
-  - name: Ensure nnn plugins are installed
-    ansible.builtin.shell:
-      cmd: sh -c "$(curl -Ls https://raw.githubusercontent.com/jarun/nnn/master/plugins/getplugs)"
+        - name: Dragon | Make install
+          ansible.builtin.command:
+            cmd: make install
+            chdir: /tmp/dragon/
+            creates: /home/{{ ansible_user_id }}/.local/bin/dragon
 
-  - name: Ensure Synology Drive is installed
-    become: yes
-    ansible.builtin.apt:
-      deb: https://global.download.synology.com/download/Utility/SynologyDriveClient/3.2.1-13271/Ubuntu/Installer/x86_64/synology-drive-client-13271.x86_64.deb
+    - name: Ensure nnn plugins are installed
+      block:
+        - name: Nnn plugins | Check if already installed
+          ansible.builtin.stat:
+            path: /home/{{ ansible_user_id }}/.config/nnn/plugins
+          register: nnn_plugins
 
-  - name: Ensure Obsidian is installed from snap
-    become: yes
-    community.general.snap:
-      name: obsidian
-      classic: true
+        - name: Nnn plugins | Download install script
+          ansible.builtin.get_url:
+            url: https://raw.githubusercontent.com/jarun/nnn/master/plugins/getplugs
+            dest: /tmp/nnn-getplugs.sh
+            mode: '0755'
+          when: not nnn_plugins.stat.exists
 
-  - name: Ensure Signal is installed
-    become: yes
-    block:
-      - name: Signal | get key
-        ansible.builtin.get_url:
-          url: https://updates.signal.org/desktop/apt/keys.asc
-          dest: /etc/apt/keyrings/signal-desktop.asc
+        - name: Nnn plugins | Run install script
+          ansible.builtin.command:
+            cmd: /bin/sh /tmp/nnn-getplugs.sh
+          when: not nnn_plugins.stat.exists
+          changed_when: true
 
-      - name: Signal | apt source
-        ansible.builtin.apt_repository:
-          repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/signal-desktop.asc] https://updates.signal.org/desktop/apt xenial main"
-          state: present
+    - name: Ensure Synology Drive is installed
+      become: true
+      ansible.builtin.apt:
+        deb:
+          https://global.download.synology.com/download/Utility/SynologyDriveClient/3.2.1-13271/Ubuntu/Installer/x86_64/synology-drive-client-13271.x86_64.deb
 
-      - name: Signal | install
-        ansible.builtin.apt:
-          name: signal-desktop
+    - name: Ensure Obsidian is installed from snap
+      become: true
+      community.general.snap:
+        name: obsidian
+        classic: true
 
-  - name: Ensure Insomnia is installed from snap
-    become: yes
-    community.general.snap:
-      name: insomnia
+    - name: Ensure Signal is installed
+      become: true
+      block:
+        - name: Signal | Get key
+          ansible.builtin.get_url:
+            url: https://updates.signal.org/desktop/apt/keys.asc
+            dest: /etc/apt/keyrings/signal-desktop.asc
+            mode: '0644'
+
+        - name: Signal | Add apt source
+          ansible.builtin.apt_repository:
+            repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/signal-desktop.asc] https://updates.signal.org/desktop/apt xenial main"
+            state: present
+
+        - name: Signal | install
+          ansible.builtin.apt:
+            name: signal-desktop
+
+    - name: Ensure Insomnia is installed from snap
+      become: true
+      community.general.snap:
+        name: insomnia

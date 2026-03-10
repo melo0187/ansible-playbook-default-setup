@@ -1,73 +1,90 @@
 ---
-- hosts: all
+- name: Configure work device
+  hosts: all
 
   tasks:
-  - name: Ensure Slack is installed from snap
-    become: yes
-    community.general.snap:
-      name: slack
-      classic: true
+    - name: Ensure Slack is installed from snap
+      become: true
+      community.general.snap:
+        name: slack
+        classic: true
 
-  - name: Ensure IntelliJ IDEA Ultimate is installed from snap
-    become: yes
-    community.general.snap:
-      name: intellij-idea-ultimate
-      classic: true
+    - name: Ensure IntelliJ IDEA Ultimate is installed from snap
+      become: true
+      community.general.snap:
+        name: intellij-idea-ultimate
+        classic: true
 
-  - name: Ensure kubectl is installed from snap
-    become: yes
-    community.general.snap:
-      name: kubectl
-      classic: true
+    - name: Ensure kubectl is installed from snap
+      become: true
+      community.general.snap:
+        name: kubectl
+        classic: true
 
-  - name: Ensure terraform is installed
-    apt:
-      name: terraform
-      state: present
-      update_cache: yes
+    - name: Ensure terraform is installed
+      ansible.builtin.apt:
+        name: terraform
+        state: present
+        update_cache: true
 
-  - name: Install Granted from Common Fate APT repository
-    become: yes
-    tasks:
-      - name: Ensure GPG is installed
-        apt:
-          name: gpg
-          state: present
-          update_cache: yes
-  
-      - name: Download and install the Common Fate GPG key
-        get_url:
-          url: https://apt.releases.commonfate.io/gpg
-          dest: /usr/share/keyrings/common-fate-linux.gpg
-          mode: '0644'
-        register: gpg_key
-  
-      - name: Add the Common Fate APT repository
-        copy:
-          dest: /etc/apt/sources.list.d/common-fate.list
-          content: "deb [arch={{ ansible_architecture }} signed-by=/usr/share/keyrings/common-fate-linux.gpg] https://apt.releases.commonfate.io stable main"
-          mode: '0644'
-        register: apt_repo
-  
-      - name: Update APT repositories
-        apt:
-          update_cache: yes
-        when: gpg_key.changed or apt_repo.changed
-  
-      - name: Install Granted
-        apt:
-          name: granted
-          state: present
+    - name: Install Granted from Common Fate APT repository
+      become: true
+      block:
+        - name: Ensure GPG is installed
+          ansible.builtin.apt:
+            name: gpg
+            state: present
+            update_cache: true
 
-      - name: Ensure alias assume="source assume" is in ~/.zshrc-work
-        lineinfile:
-          path: ~/.zshrc-work
-          line: 'alias assume="source assume"'
-          create: yes
+        - name: Download and install the Common Fate GPG key
+          ansible.builtin.get_url:
+            url: https://apt.releases.commonfate.io/gpg
+            dest: /usr/share/keyrings/common-fate-linux.gpg
+            mode: "0644"
+          register: gpg_key
 
-  - name: Install pnpm
-    shell: curl -fsSL https://get.pnpm.io/install.sh | sh -
-    args:
-      executable: /bin/bash
-    register: pnpm_install
-    changed_when: "'pnpm' in pnpm_install.stdout"
+        - name: Add the Common Fate APT repository
+          ansible.builtin.copy:
+            dest: /etc/apt/sources.list.d/common-fate.list
+            content: "deb [arch={{ ansible_architecture }} signed-by=/usr/share/keyrings/common-fate-linux.gpg] https://apt.releases.commonfate.io stable main"
+            mode: "0644"
+          register: apt_repo
+
+        - name: Update APT repositories
+          ansible.builtin.apt:
+            update_cache: true
+          when: gpg_key.changed or apt_repo.changed
+
+        - name: Install Granted
+          ansible.builtin.apt:
+            name: granted
+            state: present
+
+        - name: Ensure alias assume="source assume" is in ~/.zshrc-work
+          ansible.builtin.lineinfile:
+            path: ~/.zshrc-work
+            line: 'alias assume="source assume"'
+            create: true
+            mode: '0644'
+
+    - name: Install pnpm
+      block:
+        - name: Check if pnpm is already installed
+          ansible.builtin.command:
+            cmd: which pnpm
+          register: pnpm_check
+          changed_when: false
+          failed_when: false
+
+        - name: Download pnpm install script
+          ansible.builtin.get_url:
+            url: https://get.pnpm.io/install.sh
+            dest: /tmp/pnpm-install.sh
+            mode: '0755'
+          when: pnpm_check.rc != 0
+
+        - name: Install pnpm
+          ansible.builtin.command:
+            cmd: /bin/bash /tmp/pnpm-install.sh
+          when: pnpm_check.rc != 0
+          changed_when: true

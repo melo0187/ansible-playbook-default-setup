@@ -1,94 +1,111 @@
 ---
-- hosts: all
+- name: Configure private device
+  hosts: all
 
   tasks:
-  - name: Ensure software for private use available from apt is installed
-    become: yes
-    ansible.builtin.apt:
-      pkg:
-      - hexchat
-      - steam
+    - name: Ensure software for private use available from apt is installed
+      become: true
+      ansible.builtin.apt:
+        pkg:
+          - hexchat
+          - steam
 
-  - name: Install OpenRazer and Polychromatic from PPAs
-    become: yes
-    block:
-      - name: Add OpenRazer PPA
-        ansible.builtin.apt_repository:
-          repo: ppa:openrazer/stable
-          state: present
-  
-      - name: Add Polychromatic PPA
-        ansible.builtin.apt_repository:
-          repo: ppa:polychromatic/stable
-          state: present
-  
-      - name: Update APT package index
-        ansible.builtin.apt:
-          update_cache: yes
-  
-      - name: Install Polychromatic
-        ansible.builtin.apt:
-          pkg:
-          - polychromatic
-          - openrazer-meta
+    - name: Install OpenRazer and Polychromatic from PPAs
+      become: true
+      block:
+        - name: Add OpenRazer PPA
+          ansible.builtin.apt_repository:
+            repo: ppa:openrazer/stable
+            state: present
 
-      - name: Add user to the plugdev group
-        ansible.builtin.user:
-          name: "{{ ansible_user_id }}"
-          groups: plugdev
-          append: yes
+        - name: Add Polychromatic PPA
+          ansible.builtin.apt_repository:
+            repo: ppa:polychromatic/stable
+            state: present
 
-  - name: Ensure software for private use available from snap is installed
-    become: yes
-    community.general.snap:
-      name: 
-      - discord
+        - name: Update APT package index
+          ansible.builtin.apt:
+            update_cache: true
 
-  - name: Ensure IntelliJ IDEA Community is installed from snap
-    become: yes
-    community.general.snap:
-      name: intellij-idea-community
-      classic: true
+        - name: Install Polychromatic
+          ansible.builtin.apt:
+            pkg:
+              - polychromatic
+              - openrazer-meta
 
-  - name: Mount DiskStation shares with autofs
-    become: yes
-    block:
-      - name: Ensure nfs-common and autofs are installed
-        ansible.builtin.apt:
-          name:
-            - nfs-common
-            - autofs
-          state: present
-      
-      - name: Ensure auto.master contains the autofs configuration
-        lineinfile:
-          path: /etc/auto.master
-          line: "/- /etc/auto.home"
-          state: present
-      
-      - name: Create necessary mount point directories
-        file:
-          path: "{{ item }}"
-          state: directory
-          owner: "{{ ansible_user_id }}"
-          group: "{{ ansible_user_id }}"
-          mode: '0755'
-        loop:
-          - "/home/{{ ansible_user_id }}/Music/AudioStation"
-          - "/home/{{ ansible_user_id }}/Videos/VideoStation"
-          - "/home/{{ ansible_user_id }}/Pictures/PhotoStation"
-          - "/home/{{ ansible_user_id }}/Downloads/DownloadStation"
-          - "/home/{{ ansible_user_id }}/Backup"
-      
-      - name: Deploy the auto.home file with dynamic username
-        template:
-          src: auto.home.j2
-          dest: /etc/auto.home
-          owner: root
-          group: root
-          mode: '0644'
-      
-      - name: Reload autofs service
-        service:
-          name: autofs
-          state: reloaded
+        - name: Add user to the plugdev group
+          ansible.builtin.user:
+            name: "{{ ansible_user_id }}"
+            groups: plugdev
+            append: true
+
+    - name: Ensure software for private use available from snap is installed
+      become: true
+      community.general.snap:
+        name:
+          - discord
+
+    - name: Ensure IntelliJ IDEA Community is installed from snap
+      become: true
+      community.general.snap:
+        name: intellij-idea-community
+        classic: true
+
+    - name: Setup Flatpak and Flathub on Ubuntu
+      become: true
+      block:
+        - name: Install Flatpak
+          ansible.builtin.apt:
+            name: flatpak
+            state: present
+            update_cache: true
+
+        - name: Add Flathub remote repository
+          community.general.flatpak_remote:
+            name: flathub
+            state: present
+            flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+            method: system
+
+    - name: Mount DiskStation shares with autofs
+      become: true
+      block:
+        - name: Ensure nfs-common and autofs are installed
+          ansible.builtin.apt:
+            name:
+              - nfs-common
+              - autofs
+            state: present
+
+        - name: Ensure auto.master contains the autofs configuration
+          ansible.builtin.lineinfile:
+            path: /etc/auto.master
+            line: "/- /etc/auto.home"
+            state: present
+
+        - name: Create necessary mount point directories
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            owner: "{{ ansible_user_id }}"
+            group: "{{ ansible_user_id }}"
+            mode: "0755"
+          loop:
+            - "/home/{{ ansible_user_id }}/Music/AudioStation"
+            - "/home/{{ ansible_user_id }}/Videos/VideoStation"
+            - "/home/{{ ansible_user_id }}/Pictures/PhotoStation"
+            - "/home/{{ ansible_user_id }}/Downloads/DownloadStation"
+            - "/home/{{ ansible_user_id }}/Backup"
+
+        - name: Deploy the auto.home file with dynamic username
+          ansible.builtin.template:
+            src: auto.home.j2
+            dest: /etc/auto.home
+            owner: root
+            group: root
+            mode: "0644"
+
+        - name: Reload autofs service
+          ansible.builtin.service:
+            name: autofs
+            state: reloaded
