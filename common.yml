@@ -42,69 +42,75 @@
     - name: Ensure user has zsh set as his shell
       become: true
       ansible.builtin.user:
-        name: "{{ ansible_user_id }}"
+        name: "{{ ansible_facts['user_id'] }}"
         shell: /bin/zsh
 
     - name: Ensure oh-my-zsh has been installed
       ansible.builtin.git:
         repo: https://github.com/ohmyzsh/ohmyzsh.git
-        dest: /home/{{ ansible_user_id }}/.oh-my-zsh
+        dest: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh
         depth: 1
         version: master
 
     - name: Ensure zsh-syntax-highlighting plugin is installed
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
-        dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+        dest: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
         depth: 1
         version: master
 
     - name: Ensure fzf-tab plugin is installed
       ansible.builtin.git:
         repo: https://github.com/Aloxaf/fzf-tab.git
-        dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/plugins/fzf-tab
+        dest: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh/custom/plugins/fzf-tab
         depth: 1
         version: master
 
     - name: Ensure spaceship theme is cloned
       ansible.builtin.git:
         repo: https://github.com/spaceship-prompt/spaceship-prompt.git
-        dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship-prompt
+        dest: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh/custom/themes/spaceship-prompt
         depth: 1
         version: master
 
     - name: Ensure spaceship theme is symlinked
       ansible.builtin.file:
-        src: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme
-        dest: /home/{{ ansible_user_id }}/.oh-my-zsh/custom/themes/spaceship.zsh-theme
+        src: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme
+        dest: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh/custom/themes/spaceship.zsh-theme
         state: link
+      when: not ansible_check_mode
 
     - name: Ensure dotfiles are applied
       block:
         - name: Dotfiles | Clone
           ansible.builtin.git:
             repo: https://github.com/melo0187/dotfiles.git
-            dest: /home/{{ ansible_user_id }}/dotfiles
+            dest: /home/{{ ansible_facts['user_id'] }}/dotfiles
             version: master
 
         - name: Dotfiles | Stow
           ansible.builtin.command: stow .
           args:
-            chdir: /home/{{ ansible_user_id }}/dotfiles
+            chdir: /home/{{ ansible_facts['user_id'] }}/dotfiles
           changed_when: true
+          when: not ansible_check_mode
 
     - name: Ensure docker is installed
+      when: not ansible_check_mode
       become: true
       block:
         - name: Docker | Download GPG key
           ansible.builtin.get_url:
             url: https://download.docker.com/linux/ubuntu/gpg
             dest: /etc/apt/keyrings/docker.asc
-            mode: '0644'
+            mode: "0644"
 
         - name: Docker | Add apt source
           ansible.builtin.apt_repository:
-            repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            repo: >-
+              deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc]
+              https://download.docker.com/linux/ubuntu
+              {{ ansible_facts['distribution_release'] }} stable
             state: present
 
         - name: Docker | Install packages
@@ -130,7 +136,7 @@
 
         - name: Docker | Add the user to docker group
           ansible.builtin.user:
-            name: "{{ ansible_user_id }}"
+            name: "{{ ansible_facts['user_id'] }}"
             groups: docker
             append: true
 
@@ -147,20 +153,21 @@
           ansible.builtin.command:
             cmd: make install
             chdir: /tmp/dragon/
-            creates: /home/{{ ansible_user_id }}/.local/bin/dragon
+            creates: /home/{{ ansible_facts['user_id'] }}/.local/bin/dragon
+          when: not ansible_check_mode
 
     - name: Ensure nnn plugins are installed
       block:
         - name: Nnn plugins | Check if already installed
           ansible.builtin.stat:
-            path: /home/{{ ansible_user_id }}/.config/nnn/plugins
+            path: /home/{{ ansible_facts['user_id'] }}/.config/nnn/plugins
           register: nnn_plugins
 
         - name: Nnn plugins | Download install script
           ansible.builtin.get_url:
             url: https://raw.githubusercontent.com/jarun/nnn/master/plugins/getplugs
             dest: /tmp/nnn-getplugs.sh
-            mode: '0755'
+            mode: "0755"
           when: not nnn_plugins.stat.exists
 
         - name: Nnn plugins | Run install script
@@ -182,13 +189,14 @@
         classic: true
 
     - name: Ensure Signal is installed
+      when: not ansible_check_mode
       become: true
       block:
         - name: Signal | Get key
           ansible.builtin.get_url:
             url: https://updates.signal.org/desktop/apt/keys.asc
             dest: /etc/apt/keyrings/signal-desktop.asc
-            mode: '0644'
+            mode: "0644"
 
         - name: Signal | Add apt source
           ansible.builtin.apt_repository:

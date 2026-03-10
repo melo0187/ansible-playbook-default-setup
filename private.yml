@@ -8,9 +8,31 @@
       ansible.builtin.apt:
         pkg:
           - hexchat
-          - steam
+
+    - name: Install Steam for Valve's official deb
+      block:
+        - name: Steam | Enable i386 architecture
+          ansible.builtin.command:
+            cmd: dpkg --add-architecture i386
+          become: true
+          changed_when: false
+
+        - name: Steam | Download deb
+          ansible.builtin.get_url:
+            url: https://cdn.akamai.steamstatic.com/client/installer/steam.deb
+            dest: /tmp/steam.deb
+            mode: '0644'
+          when: not ansible_check_mode
+
+        - name: Steam | Install deb
+          ansible.builtin.apt:
+            deb: /tmp/steam.deb
+            update_cache: true
+          become: true
+          when: not ansible_check_mode
 
     - name: Install OpenRazer and Polychromatic from PPAs
+      when: not ansible_check_mode
       become: true
       block:
         - name: Add OpenRazer PPA
@@ -35,7 +57,7 @@
 
         - name: Add user to the plugdev group
           ansible.builtin.user:
-            name: "{{ ansible_user_id }}"
+            name: "{{ ansible_facts['user_id'] }}"
             groups: plugdev
             append: true
 
@@ -52,6 +74,7 @@
         classic: true
 
     - name: Setup Flatpak and Flathub on Ubuntu
+      when: not ansible_check_mode
       become: true
       block:
         - name: Install Flatpak
@@ -68,6 +91,7 @@
             method: system
 
     - name: Ensure ProtonPlus is installed from Flathub
+      when: not ansible_check_mode
       community.general.flatpak:
         name: com.vysp3r.ProtonPlus
         state: present
@@ -91,6 +115,7 @@
             state: present
 
     - name: Mount DiskStation shares with autofs
+      when: not ansible_check_mode
       become: true
       block:
         - name: Ensure nfs-common and autofs are installed
@@ -110,15 +135,15 @@
           ansible.builtin.file:
             path: "{{ item }}"
             state: directory
-            owner: "{{ ansible_user_id }}"
-            group: "{{ ansible_user_id }}"
+            owner: "{{ ansible_facts['user_id'] }}"
+            group: "{{ ansible_facts['user_id'] }}"
             mode: "0755"
           loop:
-            - "/home/{{ ansible_user_id }}/Music/AudioStation"
-            - "/home/{{ ansible_user_id }}/Videos/VideoStation"
-            - "/home/{{ ansible_user_id }}/Pictures/PhotoStation"
-            - "/home/{{ ansible_user_id }}/Downloads/DownloadStation"
-            - "/home/{{ ansible_user_id }}/Backup"
+            - "/home/{{ ansible_facts['user_id'] }}/Music/AudioStation"
+            - "/home/{{ ansible_facts['user_id'] }}/Videos/VideoStation"
+            - "/home/{{ ansible_facts['user_id'] }}/Pictures/PhotoStation"
+            - "/home/{{ ansible_facts['user_id'] }}/Downloads/DownloadStation"
+            - "/home/{{ ansible_facts['user_id'] }}/Backup"
 
         - name: Deploy the auto.home file with dynamic username
           ansible.builtin.template:
