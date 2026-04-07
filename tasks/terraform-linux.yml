@@ -1,0 +1,22 @@
+---
+- name: Terraform | Download GPG key
+  become: true
+  ansible.builtin.get_url:
+    url: https://apt.releases.hashicorp.com/gpg
+    dest: /etc/apt/keyrings/hashicorp.asc
+    mode: "0644"
+
+- name: Terraform | Add apt source
+  become: true
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch=amd64 signed-by=/etc/apt/keyrings/hashicorp.asc]
+      https://apt.releases.hashicorp.com
+      {{ ansible_facts['distribution_release'] }} main
+    state: present
+
+- name: Terraform | Install package
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - terraform

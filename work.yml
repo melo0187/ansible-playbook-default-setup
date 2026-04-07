@@ -8,82 +8,59 @@
       community.general.snap:
         name: slack
         classic: true
+      when: ansible_os_family == 'Debian'
 
     - name: Ensure IntelliJ IDEA Ultimate is installed from snap
       become: true
       community.general.snap:
         name: intellij-idea-ultimate
         classic: true
+      when: ansible_os_family == 'Debian'
 
     - name: Ensure kubectl is installed from snap
       become: true
       community.general.snap:
         name: kubectl
         classic: true
+      when: ansible_os_family == 'Debian'
 
-    - name: Ensure Terraform is installed
-      when: not ansible_check_mode
-      become: true
-      block:
-        - name: Terraform | Download GPG key
-          ansible.builtin.get_url:
-            url: https://apt.releases.hashicorp.com/gpg
-            dest: /etc/apt/keyrings/hashicorp.asc
-            mode: "0644"
+    - name: Ensure work tools are installed via Homebrew
+      community.general.homebrew:
+        name:
+          - kubectl
+        state: present
+      when: ansible_os_family == 'Darwin'
 
-        - name: Terraform | Add apt source
-          ansible.builtin.apt_repository:
-            repo: >-
-              deb [arch=amd64 signed-by=/etc/apt/keyrings/hashicorp.asc]
-              https://apt.releases.hashicorp.com
-              {{ ansible_facts['distribution_release'] }} main
-            state: present
+    - name: Ensure work apps are installed via Homebrew Cask
+      community.general.homebrew_cask:
+        name:
+          - slack
+          - intellij-idea
+        state: present
+      when: ansible_os_family == 'Darwin'
 
-        - name: Terraform | Install package
-          ansible.builtin.apt:
-            pkg:
-              - terraform
+    - name: Ensure Terraform is installed (Linux)
+      ansible.builtin.include_tasks: tasks/terraform-linux.yml
+      when: ansible_os_family == 'Debian' and not ansible_check_mode
 
-    - name: Install Granted from Common Fate APT repository
-      when: not ansible_check_mode
-      become: true
-      block:
-        - name: Ensure GPG is installed
-          ansible.builtin.apt:
-            name: gpg
-            state: present
-            update_cache: true
+    - name: Ensure Terraform is installed (macOS)
+      ansible.builtin.include_tasks: tasks/terraform-macos.yml
+      when: ansible_os_family == 'Darwin' and not ansible_check_mode
 
-        - name: Download and install the Common Fate GPG key
-          ansible.builtin.get_url:
-            url: https://apt.releases.commonfate.io/gpg
-            dest: /usr/share/keyrings/common-fate-linux.gpg
-            mode: "0644"
-          register: gpg_key
+    - name: Ensure Granted is installed (Linux)
+      ansible.builtin.include_tasks: tasks/granted-linux.yml
+      when: ansible_os_family == 'Debian' and not ansible_check_mode
 
-        - name: Add the Common Fate APT repository
-          ansible.builtin.copy:
-            dest: /etc/apt/sources.list.d/common-fate.list
-            content: "deb [arch={{ ansible_architecture }} signed-by=/usr/share/keyrings/common-fate-linux.gpg] https://apt.releases.commonfate.io stable main"
-            mode: "0644"
-          register: apt_repo
+    - name: Ensure Granted is installed (macOS)
+      ansible.builtin.include_tasks: tasks/granted-macos.yml
+      when: ansible_os_family == 'Darwin' and not ansible_check_mode
 
-        - name: Update APT repositories
-          ansible.builtin.apt:
-            update_cache: true
-          when: gpg_key.changed or apt_repo.changed
-
-        - name: Install Granted
-          ansible.builtin.apt:
-            name: granted
-            state: present
-
-        - name: Ensure alias assume="source assume" is in ~/.zshrc-work
-          ansible.builtin.lineinfile:
-            path: ~/.zshrc-work
-            line: 'alias assume="source assume"'
-            create: true
-            mode: "0644"
+    - name: Ensure alias assume="source assume" is in ~/.zshrc-work
+      ansible.builtin.lineinfile:
+        path: ~/.zshrc-work
+        line: 'alias assume="source assume"'
+        create: true
+        mode: "0644"
 
     - name: Install pnpm
       block:

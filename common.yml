@@ -8,6 +8,7 @@
       ansible.builtin.apt:
         upgrade: true
         update_cache: true
+      when: ansible_os_family == 'Debian'
 
     - name: Ensure required software available from apt is installed
       become: true
@@ -33,50 +34,85 @@
           - fonts-firacode
           - img2pdf
           - ocrmypdf
+      when: ansible_os_family == 'Debian'
+
+    - name: Ensure Homebrew packages are installed
+      community.general.homebrew:
+        name:
+          - vim
+          - git
+          - make
+          - gcc
+          - curl
+          - jq
+          - fzf
+          - ripgrep
+          - openjdk@21
+          - stow
+          - nnn
+          - tmux
+          - zsh
+          - img2pdf
+          - ocrmypdf
+          - jump
+        state: present
+      when: ansible_os_family == 'Darwin'
+
+    - name: Ensure Homebrew Cask apps are installed
+      community.general.homebrew_cask:
+        name:
+          - font-fira-code
+          - obsidian
+          - insomnia
+          - rectangle
+        state: present
+      when: ansible_os_family == 'Darwin'
 
     - name: Ensure jump is installed from snap
       become: true
       community.general.snap:
         name: jump
+      when: ansible_os_family == 'Debian'
 
     - name: Ensure user has zsh set as his shell
       become: true
       ansible.builtin.user:
         name: "{{ ansible_facts['user_id'] }}"
         shell: /bin/zsh
+      when: ansible_os_family == 'Debian'
 
     - name: Ensure oh-my-zsh has been installed
       ansible.builtin.git:
         repo: https://github.com/ohmyzsh/ohmyzsh.git
-        dest: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh"
         depth: 1
         version: master
 
     - name: Ensure zsh-syntax-highlighting plugin is installed
       ansible.builtin.git:
         repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
-        dest: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
         depth: 1
         version: master
 
     - name: Ensure fzf-tab plugin is installed
       ansible.builtin.git:
         repo: https://github.com/Aloxaf/fzf-tab.git
-        dest: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh/custom/plugins/fzf-tab
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/fzf-tab"
         depth: 1
         version: master
 
     - name: Ensure spaceship theme is cloned
       ansible.builtin.git:
         repo: https://github.com/spaceship-prompt/spaceship-prompt.git
-        dest: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh/custom/themes/spaceship-prompt
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/spaceship-prompt"
         depth: 1
         version: master
 
     - name: Ensure spaceship theme is symlinked
       ansible.builtin.file:
-        src: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme
-        dest: /home/{{ ansible_facts['user_id'] }}/.oh-my-zsh/custom/themes/spaceship.zsh-theme
+        src: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/spaceship-prompt/spaceship.zsh-theme"
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/spaceship.zsh-theme"
         state: link
       when: not ansible_check_mode
 
@@ -85,62 +121,26 @@
         - name: Dotfiles | Clone
           ansible.builtin.git:
             repo: https://github.com/melo0187/dotfiles.git
-            dest: /home/{{ ansible_facts['user_id'] }}/dotfiles
+            dest: "{{ ansible_env.HOME }}/dotfiles"
             version: master
 
         - name: Dotfiles | Stow
           ansible.builtin.command: stow .
           args:
-            chdir: /home/{{ ansible_facts['user_id'] }}/dotfiles
+            chdir: "{{ ansible_env.HOME }}/dotfiles"
           changed_when: true
           when: not ansible_check_mode
 
-    - name: Ensure docker is installed
-      when: not ansible_check_mode
-      become: true
-      block:
-        - name: Docker | Download GPG key
-          ansible.builtin.get_url:
-            url: https://download.docker.com/linux/ubuntu/gpg
-            dest: /etc/apt/keyrings/docker.asc
-            mode: "0644"
+    - name: Ensure docker is installed (Linux)
+      ansible.builtin.include_tasks: tasks/docker-linux.yml
+      when: ansible_os_family == 'Debian' and not ansible_check_mode
 
-        - name: Docker | Add apt source
-          ansible.builtin.apt_repository:
-            repo: >-
-              deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc]
-              https://download.docker.com/linux/ubuntu
-              {{ ansible_facts['distribution_release'] }} stable
-            state: present
-
-        - name: Docker | Install packages
-          ansible.builtin.apt:
-            pkg:
-              - docker-ce
-              - docker-ce-cli
-              - containerd.io
-              - docker-buildx-plugin
-              - docker-compose-plugin
-
-        - name: Docker | Enable and start docker service
-          ansible.builtin.service:
-            name: docker
-            state: started
-            enabled: true
-
-        - name: Docker | Enable and start containerd service
-          ansible.builtin.service:
-            name: containerd
-            state: started
-            enabled: true
-
-        - name: Docker | Add the user to docker group
-          ansible.builtin.user:
-            name: "{{ ansible_facts['user_id'] }}"
-            groups: docker
-            append: true
+    - name: Ensure docker is installed (macOS)
+      ansible.builtin.include_tasks: tasks/docker-macos.yml
+      when: ansible_os_family == 'Darwin' and not ansible_check_mode
 
     - name: Ensure dragon is installed (used with nnn)
+      when: ansible_os_family == 'Debian'
       block:
         - name: Dragon | Clone repository
           ansible.builtin.git:
@@ -153,14 +153,14 @@
           ansible.builtin.command:
             cmd: make install
             chdir: /tmp/dragon/
-            creates: /home/{{ ansible_facts['user_id'] }}/.local/bin/dragon
+            creates: "{{ ansible_env.HOME }}/.local/bin/dragon"
           when: not ansible_check_mode
 
     - name: Ensure nnn plugins are installed
       block:
         - name: Nnn plugins | Check if already installed
           ansible.builtin.stat:
-            path: /home/{{ ansible_facts['user_id'] }}/.config/nnn/plugins
+            path: "{{ ansible_env.HOME }}/.config/nnn/plugins"
           register: nnn_plugins
 
         - name: Nnn plugins | Download install script
@@ -176,38 +176,31 @@
           when: not nnn_plugins.stat.exists
           changed_when: true
 
-    - name: Ensure Synology Drive is installed
-      become: true
-      ansible.builtin.apt:
-        deb:
-          https://global.download.synology.com/download/Utility/SynologyDriveClient/3.2.1-13271/Ubuntu/Installer/x86_64/synology-drive-client-13271.x86_64.deb
+    - name: Ensure Synology Drive is installed (Linux)
+      ansible.builtin.include_tasks: tasks/synology-drive-linux.yml
+      when: ansible_os_family == 'Debian'
+
+    - name: Ensure Synology Drive is installed (macOS)
+      ansible.builtin.include_tasks: tasks/synology-drive-macos.yml
+      when: ansible_os_family == 'Darwin'
 
     - name: Ensure Obsidian is installed from snap
       become: true
       community.general.snap:
         name: obsidian
         classic: true
+      when: ansible_os_family == 'Debian'
 
-    - name: Ensure Signal is installed
-      when: not ansible_check_mode
-      become: true
-      block:
-        - name: Signal | Get key
-          ansible.builtin.get_url:
-            url: https://updates.signal.org/desktop/apt/keys.asc
-            dest: /etc/apt/keyrings/signal-desktop.asc
-            mode: "0644"
+    - name: Ensure Signal is installed (Linux)
+      ansible.builtin.include_tasks: tasks/signal-linux.yml
+      when: ansible_os_family == 'Debian' and not ansible_check_mode
 
-        - name: Signal | Add apt source
-          ansible.builtin.apt_repository:
-            repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/signal-desktop.asc] https://updates.signal.org/desktop/apt xenial main"
-            state: present
-
-        - name: Signal | install
-          ansible.builtin.apt:
-            name: signal-desktop
+    - name: Ensure Signal is installed (macOS)
+      ansible.builtin.include_tasks: tasks/signal-macos.yml
+      when: ansible_os_family == 'Darwin' and not ansible_check_mode
 
     - name: Ensure Insomnia is installed from snap
       become: true
       community.general.snap:
         name: insomnia
+      when: ansible_os_family == 'Debian'
