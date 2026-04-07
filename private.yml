@@ -139,11 +139,11 @@
             group: "{{ ansible_facts['user_id'] }}"
             mode: "0755"
           loop:
-            - "/home/{{ ansible_facts['user_id'] }}/Music/AudioStation"
-            - "/home/{{ ansible_facts['user_id'] }}/Videos/VideoStation"
-            - "/home/{{ ansible_facts['user_id'] }}/Pictures/PhotoStation"
-            - "/home/{{ ansible_facts['user_id'] }}/Downloads/DownloadStation"
-            - "/home/{{ ansible_facts['user_id'] }}/Backup"
+            - "{{ ansible_env.HOME }}/Music/AudioStation"
+            - "{{ ansible_env.HOME }}/Videos/VideoStation"
+            - "{{ ansible_env.HOME }}/Pictures/PhotoStation"
+            - "{{ ansible_env.HOME }}/Downloads/DownloadStation"
+            - "{{ ansible_env.HOME }}/Backup"
 
         - name: Deploy the auto.home file with dynamic username
           ansible.builtin.template:

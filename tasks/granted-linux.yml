@@ -1,0 +1,35 @@
+---
+- name: Ensure GPG is installed
+  become: true
+  ansible.builtin.apt:
+    name: gpg
+    state: present
+    update_cache: true
+
+- name: Download and install the Common Fate GPG key
+  become: true
+  ansible.builtin.get_url:
+    url: https://apt.releases.commonfate.io/gpg
+    dest: /usr/share/keyrings/common-fate-linux.gpg
+    mode: "0644"
+  register: gpg_key
+
+- name: Add the Common Fate APT repository
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/common-fate.list
+    content: "deb [arch={{ ansible_architecture }} signed-by=/usr/share/keyrings/common-fate-linux.gpg] https://apt.releases.commonfate.io stable main"
+    mode: "0644"
+  register: apt_repo
+
+- name: Update APT repositories
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+  when: gpg_key.changed or apt_repo.changed
+
+- name: Install Granted
+  become: true
+  ansible.builtin.apt:
+    name: granted
+    state: present

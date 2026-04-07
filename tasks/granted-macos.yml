@@ -1,0 +1,9 @@
+---
+- name: Granted | Tap Common Fate
+  community.general.homebrew_tap:
+    name: common-fate/granted
+
+- name: Granted | Install
+  community.general.homebrew:
+    name: granted
+    state: present

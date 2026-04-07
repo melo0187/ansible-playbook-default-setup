@@ -1,0 +1,5 @@
+---
+- name: Terraform | Install via Homebrew
+  community.general.homebrew:
+    name: terraform
+    state: present

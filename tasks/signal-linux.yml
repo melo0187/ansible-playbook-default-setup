@@ -1,0 +1,18 @@
+---
+- name: Signal | Get key
+  become: true
+  ansible.builtin.get_url:
+    url: https://updates.signal.org/desktop/apt/keys.asc
+    dest: /etc/apt/keyrings/signal-desktop.asc
+    mode: "0644"
+
+- name: Signal | Add apt source
+  become: true
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/signal-desktop.asc] https://updates.signal.org/desktop/apt xenial main"
+    state: present
+
+- name: Signal | Install
+  become: true
+  ansible.builtin.apt:
+    name: signal-desktop

@@ -1,15 +1,43 @@
 This is my attempt to have a Ansible playbook of my usual dev setup.
 It is based on what I learned so far by reading "Ansible for DevOps".
 
+Supports both **Linux (Ubuntu/Debian)** and **macOS**.
+
 ## Setup
-### Install Ansbile
+
+### Install Ansible
+
+The bootstrap script detects your OS and installs Ansible accordingly:
+
+```shell
+$ ./install_ansible.sh
+```
+
+#### Manual install -- Linux
 ```shell
 $ sudo apt-add-repository -y ppa:ansible/ansible
-$ sudo apt-get update 
+$ sudo apt-get update
 $ sudo apt-get install -y ansible
+$ ansible-galaxy collection install -r requirements.yml
 ```
+
+#### Manual install -- macOS
+```shell
+$ brew install ansible ansible-lint
+$ ansible-galaxy collection install -r requirements.yml
+```
+
 ### Run the playbook
-Should just be `ansible-playbook --connection=local --inventory 127.0.0.1, --ask-become-pass playbook.yml`
+
+```shell
+$ ansible-playbook --connection=local --inventory 127.0.0.1, --ask-become-pass playbook.yml
+```
+
+Or use the Makefile targets:
+```shell
+$ make play-work    # work device (common + work tools)
+$ make play-private # private device (common + gaming/private tools)
+```
 
 ## Testing
 To be able to test the playbook I use Vagrant and an Ubuntu box in VirtualBox.
@@ -28,4 +56,3 @@ The Vagrantfile has already been changed to use the playbook for provisioning.
 Running `vagrant up` will run the playbook once the VM is up.
 To rerun the playbook on the already running VM run `vagrant provision`.
 To retest from scratch first run `vagrant destroy` followed by `vagrant up`.
-

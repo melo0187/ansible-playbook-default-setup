@@ -1,0 +1,39 @@
+---
+# The DMG URL version should be kept in sync with the deb version in synology-drive-linux.yml
+- name: Synology Drive | Check if already installed
+  ansible.builtin.stat:
+    path: /Applications/Synology Drive Client.app
+  register: synology_drive_app
+
+- name: Synology Drive | Download DMG
+  ansible.builtin.get_url:
+    url: https://global.download.synology.com/download/Utility/SynologyDriveClient/3.2.1-13271/Mac/Installer/synology-drive-client-13271.dmg
+    dest: /tmp/synology-drive-client.dmg
+    mode: "0644"
+  when: not synology_drive_app.stat.exists
+
+- name: Synology Drive | Mount DMG
+  ansible.builtin.command:
+    cmd: hdiutil attach /tmp/synology-drive-client.dmg -nobrowse -mountpoint /tmp/synology-drive-mount
+  when: not synology_drive_app.stat.exists
+  changed_when: true
+
+- name: Synology Drive | Run installer pkg
+  become: true
+  ansible.builtin.command:
+    cmd: >-
+      installer -pkg /tmp/synology-drive-mount/Synology Drive Client.pkg -target /
+  when: not synology_drive_app.stat.exists
+  changed_when: true
+
+- name: Synology Drive | Unmount DMG
+  ansible.builtin.command:
+    cmd: hdiutil detach /tmp/synology-drive-mount
+  when: not synology_drive_app.stat.exists
+  changed_when: true
+
+- name: Synology Drive | Clean up DMG
+  ansible.builtin.file:
+    path: /tmp/synology-drive-client.dmg
+    state: absent
+  when: not synology_drive_app.stat.exists
