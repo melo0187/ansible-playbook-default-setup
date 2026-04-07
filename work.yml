@@ -106,3 +106,43 @@
             cmd: /bin/bash /tmp/pnpm-install.sh
           when: pnpm_check.rc != 0
           changed_when: true
+
+    - name: Install nvm
+      block:
+        - name: NVM | Check if already installed
+          ansible.builtin.stat:
+            path: "{{ ansible_env.HOME }}/.nvm"
+          register: nvm_dir
+
+        - name: NVM | Download install script
+          ansible.builtin.get_url:
+            url: https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh
+            dest: /tmp/nvm-install.sh
+            mode: "0755"
+          when: not nvm_dir.stat.exists
+
+        - name: NVM | Run install script
+          ansible.builtin.command:
+            cmd: /bin/bash /tmp/nvm-install.sh
+          when: not nvm_dir.stat.exists
+          changed_when: true
+
+    - name: Install SDKMAN
+      block:
+        - name: SDKMAN | Check if already installed
+          ansible.builtin.stat:
+            path: "{{ ansible_env.HOME }}/.sdkman"
+          register: sdkman_dir
+
+        - name: SDKMAN | Download install script
+          ansible.builtin.get_url:
+            url: https://get.sdkman.io
+            dest: /tmp/sdkman-install.sh
+            mode: "0755"
+          when: not sdkman_dir.stat.exists
+
+        - name: SDKMAN | Run install script
+          ansible.builtin.command:
+            cmd: /bin/bash /tmp/sdkman-install.sh
+          when: not sdkman_dir.stat.exists
+          changed_when: true
