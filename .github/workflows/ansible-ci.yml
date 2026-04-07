@@ -28,22 +28,33 @@ jobs:
         run: ansible-lint playbook.yml
 
   dry-run:
-    name: Dry run - ${{ matrix.device_type }}
-    runs-on: ubuntu-latest
+    name: Dry run - ${{ matrix.device_type }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     needs: lint
     strategy:
       fail-fast: false
       matrix:
-        device_type: ["private", "work"]
+        include:
+          - os: ubuntu-latest
+            device_type: private
+          - os: ubuntu-latest
+            device_type: work
+          - os: macos-latest
+            device_type: work
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Ansible
+      - name: Install Ansible (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-add-repository -y ppa:ansible/ansible
           sudo apt-get update
           sudo apt-get install -y ansible
+
+      - name: Install Ansible (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ansible
 
       - name: Install Ansible collections
         run: ansible-galaxy collection install -r requirements.yml
