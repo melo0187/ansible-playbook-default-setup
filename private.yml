@@ -9,28 +9,6 @@
         pkg:
           - hexchat
 
-    - name: Install Steam for Valve's official deb
-      block:
-        - name: Steam | Enable i386 architecture
-          ansible.builtin.command:
-            cmd: dpkg --add-architecture i386
-          become: true
-          changed_when: false
-
-        - name: Steam | Download deb
-          ansible.builtin.get_url:
-            url: https://cdn.akamai.steamstatic.com/client/installer/steam.deb
-            dest: /tmp/steam.deb
-            mode: '0644'
-          when: not ansible_check_mode
-
-        - name: Steam | Install deb
-          ansible.builtin.apt:
-            deb: /tmp/steam.deb
-            update_cache: true
-          become: true
-          when: not ansible_check_mode
-
     - name: Install OpenRazer and Polychromatic from PPAs
       when: not ansible_check_mode
       become: true
@@ -90,12 +68,45 @@
             flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
             method: system
 
-    - name: Ensure ProtonPlus is installed from Flathub
+    - name: Ensure software for private use available from Flathub is installed
       when: not ansible_check_mode
       community.general.flatpak:
-        name: com.vysp3r.ProtonPlus
+        name:
+          - com.valvesoftware.Steam
+          - com.vysp3r.ProtonPlus
+          - io.github.benjamimgois.goverlay
+          - org.freedesktop.Platform.VulkanLayer.MangoHud
+          - com.heroicgameslauncher.hgl
+          - com.orcaslicer.OrcaSlicer
         state: present
         remote: flathub
+
+    - name: Ensure Steam Flatpak overrides
+      when: not ansible_check_mode
+      block:
+        - name: Steam Flatpak | Ensure overrides directory exists
+          ansible.builtin.file:
+            path: /home/{{ ansible_facts['user_id'] }}/.local/share/flatpak/overrides
+            state: directory
+            mode: "0755"
+
+        - name: Steam Flatpak | Allow session D-Bus talk
+          community.general.ini_file:
+            path: /home/{{ ansible_facts['user_id'] }}/.local/share/flatpak/overrides/com.valvesoftware.Steam
+            section: Session Bus Policy
+            option: "{{ item }}"
+            value: talk
+            mode: "0644"
+          loop:
+            - org.freedesktop.Flatpak
+
+        - name: Steam Flatpak | Enable MangoHud
+          community.general.ini_file:
+            path: /home/{{ ansible_facts['user_id'] }}/.local/share/flatpak/overrides/com.valvesoftware.Steam
+            section: Environment
+            option: MANGOHUD
+            value: "1"
+            mode: "0644"
 
     - name: Ensure Linux Game Bench is installed
       block:

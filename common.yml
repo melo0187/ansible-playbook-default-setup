@@ -95,6 +95,13 @@
           changed_when: true
           when: not ansible_check_mode
 
+        - name: Dotfiles | Use SSH origin
+          ansible.builtin.command:
+            cmd: git remote set-url origin git@github.com:melo0187/dotfiles.git # noqa: command-instead-of-module
+            chdir: /home/{{ ansible_facts['user_id'] }}/dotfiles
+          changed_when: true
+          when: not ansible_check_mode
+
     - name: Ensure docker is installed
       when: not ansible_check_mode
       become: true
