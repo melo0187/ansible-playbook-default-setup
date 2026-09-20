@@ -25,7 +25,7 @@
           - xclip
           - fzf
           - ripgrep
-          - openjdk-21-jdk
+          - openjdk-25-jdk
           - stow
           - nnn
           - tmux
