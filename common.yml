@@ -33,6 +33,7 @@
           - fonts-firacode
           - img2pdf
           - ocrmypdf
+          - tesseract-ocr-deu
 
     - name: Ensure jump is installed from snap
       become: true
