@@ -28,6 +28,7 @@
           - openjdk-25-jdk
           - stow
           - nnn
+          - sshfs
           - tmux
           - zsh
           - fonts-firacode
